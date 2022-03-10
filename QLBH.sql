@@ -128,7 +128,26 @@ FROM  CUSTOMER;
 
 
 
-/* Stored */ 
+/* STORED */ 
+
+-- STORED Tổng sl bán ra của sp bất kì
+CREATE PROCEDURE Proc_PRODUCT (
+	@MaSP NVARCHAR(100)
+)
+AS
+BEGIN
+    SELECT pd.MaSP, pd.TenSP, SUM(od.SoLuong) AS Total_PRODUCT
+	FROM dbo.PRODUCT pd LEFT JOIN dbo.CHITIETHOADON od
+	ON od.MaSP = pd.MaSP
+	WHERE pd.MaSP = @MaSP
+	GROUP BY pd.MaSP, pd.TenSP
+END
+GO
+EXECUTE dbo.Proc_PRODUCT @MaSP = 'SP001' 
+
+SELECT * FROM dbo.PRODUCT
+SELECT * FROM dbo.CHITIETHOADON
+
 
 -- STORED: Truy xuất thông tin sản phẩm theo mã sản phẩm
 CREATE PROCEDURE sp_ThongtinSP 
@@ -218,3 +237,24 @@ AS
 GO
 
 SELECT * FROM dbo.uf_muaNhieuNhat()
+
+-- FUNCTION: Viết hàm trả về 1 giá trị những đơn hàng từ 100000 trở lên
+CREATE FUNCTION udf_hoadon
+(
+  @ThanhTien INT
+  )
+  RETURNS BIT
+  AS
+  BEGIN
+  DECLARE @hoadon BIT; 
+  if @ThanhTien >= 100000
+     SET @hoadon =1 
+	 ELSE 
+	 SET @hoadon = 0;
+	 RETURN @hoadon;
+  END
+  go
+
+  SELECT * FROM
+(SELECT *, dbo.udf_hoadon(ThanhTien) AS HOADON FROM CHITIETHOADON ) AS A
+ WHERE HOADON = 1;
