@@ -1,4 +1,4 @@
-﻿CREATE DATABASE QLBH;
+CREATE DATABASE QLBH;
 GO
 USE QLBH;
 
@@ -84,16 +84,16 @@ INSERT INTO CHITIETHOADON VALUES
 ('CT005',1,150000,150000,'DH005','SP004');
 
 /* SQL NANG CAO */
--- SQL: Hiển thị thông tin khách hàng có họ Nguyễn và địa chỉ ở Đà Nẵng
+-- Câu 1 SQL: Hiển thị thông tin khách hàng có họ Nguyễn và địa chỉ ở Đà Nẵng
 SELECT * FROM CUSTOMER WHERE HoTen LIKE N'Nguyễn%' and DiaChi LIKE N'Đà Nẵng'
 
--- SQL: Hiển thị thông tin khách hàng có thông tin đơn hàng là đang giao\
+-- Câu 2  SQL: Hiển thị thông tin khách hàng có thông tin đơn hàng là đang giao\
 SELECT DISTINCT c.* FROM CUSTOMER c JOIN DONHANG d on c.MaKH = d.MaKH 
 WHERE d.Trangthai LIKE N'Đang giao'
 
 /* VIEW */
 
--- VIEW: Hiển thị thông tin của khách hàng và đơn hàng đã mua 
+-- Câu 3 VIEW: Hiển thị thông tin của khách hàng và đơn hàng đã mua 
 CREATE VIEW V_DONHANG
 AS
 SELECT KH.MaKH,KH.DiaChi,KH.HoTen, DH.MaDH, DH.Trangthai, DH.TongTien FROM CUSTOMER KH JOIN DONHANG DH ON KH.MaKH = DH.MaKH 
@@ -103,7 +103,7 @@ SELECT * FROM V_DONHANG
 
 GO
 
--- VIEW: Thông tin những đơn hàng được đặt trong năm nay
+-- Câu 4 VIEW: Thông tin những đơn hàng được đặt trong năm nay
 CREATE VIEW V_Infooder
 AS 
     SELECT DISTINCT CUSTOMER.MaKH, 
@@ -120,36 +120,11 @@ SELECT * FROM V_Infooder
 
 GO
 
--- VIEW: Thông tin khách hàng
-CREATE VIEW CUSTOMER_VIEW AS
-SELECT MaKH, HoTen, Email, Phone, DiaChi
-FROM  CUSTOMER;
 
 
+/* Stored */ 
 
-
-/* STORED */ 
-
--- STORED Tổng sl bán ra của sp bất kì
-CREATE PROCEDURE Proc_PRODUCT (
-	@MaSP NVARCHAR(100)
-)
-AS
-BEGIN
-    SELECT pd.MaSP, pd.TenSP, SUM(od.SoLuong) AS Total_PRODUCT
-	FROM dbo.PRODUCT pd LEFT JOIN dbo.CHITIETHOADON od
-	ON od.MaSP = pd.MaSP
-	WHERE pd.MaSP = @MaSP
-	GROUP BY pd.MaSP, pd.TenSP
-END
-GO
-EXECUTE dbo.Proc_PRODUCT @MaSP = 'SP001' 
-
-SELECT * FROM dbo.PRODUCT
-SELECT * FROM dbo.CHITIETHOADON
-
-
--- STORED: Truy xuất thông tin sản phẩm theo mã sản phẩm
+-- Câu 5 PROC: Truy xuất thông tin sản phẩm theo mã sản phẩm
 CREATE PROCEDURE sp_ThongtinSP 
 @MaSP NVARCHAR(100)
 AS
@@ -161,7 +136,7 @@ EXEC sp_ThongtinSP'SP003'
 
 EXEC sp_ThongtinSP'SP007'
 
--- STORED: Kiểm tra trạng thái của một đơn hàng
+-- Câu 6 PROC: Kiểm tra trạng thái của một đơn hàng
 CREATE PROC sp_Status(@mahang NVARCHAR(100))
 AS
 BEGIN
@@ -180,13 +155,13 @@ GO
 EXEC sp_Status 'DH006'
 
 
--- STORED: thông tin đơn hàng với trạng thái đã giao
+-- Cây 7 PROC: thông tin đơn hàng với trạng thái đã giao
  create procedure orderInfo as
  select * from DONHANG where Trangthai like N'Đã giao' order by MaDH
 
  exec orderInfo
 
- -- STORED:  liet ke MaDH, TongTien tu bang DONHANG bat dau tu 1 ngay bat ky nhap vao tro di --
+ -- Câu 8 PROC:  liet ke MaDH, TongTien tu bang DONHANG bat dau tu 1 ngay bat ky nhap vao tro di --
 CREATE PROC sp_donhang 
 	@NgayDH DATE
 AS
@@ -196,11 +171,31 @@ END
 EXEC dbo.sp_donhang @NgayDH= '2022-02-28'
 
 
+---- Câu 9: PROCEDURE Tổng sl bán ra của sp bất kì
+CREATE PROCEDURE Proc_PRODUCT (
+	@MaSP NVARCHAR(100)
+)
+AS
+BEGIN
+    SELECT pd.MaSP, pd.TenSP, SUM(od.SoLuong) AS Total_PRODUCT
+	FROM dbo.PRODUCT pd LEFT JOIN dbo.CHITIETHOADON od
+	ON od.MaSP = pd.MaSP
+	WHERE pd.MaSP = @MaSP
+	GROUP BY pd.MaSP, pd.TenSP
+END
+GO
+EXECUTE dbo.Proc_PRODUCT @MaSP = 'SP001' 
+
+SELECT * FROM dbo.PRODUCT
+SELECT * FROM dbo.CHITIETHOADON
+
+go
+
 
 
 
 /* FUNCTION */
--- FUNCTION: liet ke MaDH, TongTien tu bang DONHANG bat dau tu 1 ngay bat ky nhap vao tro di --
+-- Câu 10 FUNCTION: liet ke MaDH, TongTien tu bang DONHANG bat dau tu 1 ngay bat ky nhap vao tro di --
 CREATE FUNCTION uf_donhang(@NgayDH DATE)
 RETURNS TABLE
 AS
@@ -209,7 +204,7 @@ SELECT DONHANG.MaDH, DONHANG.TongTien FROM DONHANG WHERE @NgayDH <= DONHANG.Ngay
 
 SELECT * FROM uf_donhang('2022-02-28')
 
--- FUNCTION: Tổng giá trị tiền đã mua của khách hàng 
+-- Câu 11 FUNCTION: Tổng giá trị tiền đã mua của khách hàng 
 CREATE FUNCTION uf_tienDaMua (@MaKH nvarchar(100))
 RETURNS INT
 AS
@@ -226,7 +221,7 @@ GO
 
 SELECT MaKH,dbo.uf_tienDaMua(MaKH) AS [Tiền hàng đã mua] FROM CUSTOMER
 
--- FUNCTION: Hiển thị thông tin khách hàng đặt hàng nhiều nhất
+-- Câu 12 FUNCTION: Hiển thị thông tin khách hàng đặt hàng nhiều nhất
 CREATE FUNCTION uf_muaNhieuNhat ()
 RETURNS TABLE
 AS
@@ -238,7 +233,7 @@ GO
 
 SELECT * FROM dbo.uf_muaNhieuNhat()
 
--- FUNCTION: Viết hàm trả về 1 giá trị những đơn hàng từ 100000 trở lên
+-- Câu 13 FUNCTION . Viết hàm trả về 1 giá trị những đơn hàng từ 100000 trở lên
 CREATE FUNCTION udf_hoadon
 (
   @ThanhTien INT
