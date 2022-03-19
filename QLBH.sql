@@ -437,3 +437,35 @@ CREATE EVENT event_Add
     DO
       insert into	CUSTOMER values ('KH006',    N'Nguyễn Mi Xo',  N'nttm@gmail.com' ,	  '0354111119',   N'Đà Nẵng')
 SELECT * FROM CUSTOMER
+
+-- Tạ Ngọc Trọng
+-- Trigger : Kiểm tra email của khách hàng
+CREATE TRIGGER Trg_CHECK_KH 
+ON CUSTOMER 
+FOR INSERT
+AS
+BEGIN
+  DECLARE @email NVARCHAR(100), @phone NVARCHAR(100)
+  SELECT @email = i.email FROM inserted AS i;
+
+  IF (@email NOT LIKE '%@%')
+  BEGIN
+    PRINT 'Email khong hop le'
+    ROLLBACK TRAN
+    RETURN
+  END;
+END;
+--test 1
+INSERT INTO CUSTOMER VALUES ('KH006', 'Ta Ngoc Trong', 'ngtrong.gmail.com', '0123456789', 'Da Nang');
+--test 2
+INSERT INTO CUSTOMER VALUES ('KH006', 'Ta Ngoc Trong', 'ngtrong@gmail.com', '0123456789', 'Da Nang');
+--------------------------------------------------------------------------------------------------------------
+-- Event: Tạo 1 event cứ mỗi 15 ngày sẽ cập nhật lại  GiaSP của bảng PRODUCT 1 lần với GiaSP cố định là 1000 trên mỗi SP. 
+create EVENT EV_UPDATE   
+ON SCHEDULE EVERY 15 day
+STARTS CURRENT_TIMESTAMP
+ENDS CURRENT_TIMESTAMP + INTERVAL 1 MONTH
+DO
+UPDATE PRODUCT SET GiaSP = GiaSP + 1000;
+      
+select * from PRODUCT;
