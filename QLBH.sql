@@ -1,4 +1,4 @@
-﻿CREATE DATABASE QLBH;
+CREATE DATABASE QLBH;
 GO
 USE QLBH;
 
@@ -250,29 +250,8 @@ CREATE FUNCTION udf_hoadon
 
 --TUẦN 2 : TRIGGER - EVENT
 
---Thảo
-	--Trigger: Tạo Trigger kiểm tra khi thêm đơn hàng tổng tiền phải lớn hơn 0
-CREATE TRIGGER	ADD_HOADON 
-on DONHANG
-for insert	
-as 
- if	(select TongTien from inserted) < 0
- begin 
- print 'Tong tien phai lon hon 0'
- rollback tran
-end
-
-insert into DONHANG values ('DH006','2022-12-22','Dang giao','-100','KH002','SP003')
-
-	--Event: tạo event thêm đơn hàng
-CREATE EVENT ADD_DONHANG
-    ON SCHEDULE AT CURRENT_TIMESTAMP
-    DO
-      INSERT INTO DONHANG VALUES ('DH006', '2022-03-19',N'Đang giao','KH003','SP004'
-);
-
 --Toàn
-	--Trigger: tạo trigger k cho phép thêm số lượng của sản phẩm nhỏ hơn 0
+	--Trigger: tạo trigger thêm sản phẩm, nếu số lượng sản phẩm nhỏ hơn 0 thì dừng lệnh
 create trigger add_product
 on PRODUCT
 for insert
@@ -284,39 +263,48 @@ as
 end
 
 insert into PRODUCT values ('SP006','Sp6','san pham 6','30000','-10')
+insert into PRODUCT values ('SP007','Sp6','san pham 7','40000','10')
 
-	--Event: tạo event thêm product sau 10s
+	--Event: giảm giá trứng xuống 15000 sau 2 tuần
 CREATE EVENT ADD_PRODUCT
-    ON SCHEDULE AT CURRENT_TIMESTAMP + INTERVAL 10 SECOND
+    ON SCHEDULE AT CURRENT_TIMESTAMP + INTERVAL 14 SECOND
     DO
-      INSERT INTO PRODUCT VALUES ('SP006', N'Sản phẩm 6',N'Gồm sản phẩm 6','200000','30'
+      UPDATE  PRODUCT SET GiaSP = '15000' WHERE TenSP = N'Trứng'
 );
 
---Kim Mi
--- TẠO TRIGGER trigg_1 kiểm tra MADH có tồn tại trong bảng DONHANG khi UPDATE ---
-alter TRIGGER trigg_1
-ON DONHANG
-for UPDATE
+
+-- Tạ Ngọc Trọng
+-- Trigger : Kiểm tra email của khách hàng
+CREATE TRIGGER Trg_CHECK_KH 
+ON CUSTOMER 
+FOR INSERT
 AS
 BEGIN
-	IF NOT EXISTS (SELECT MaDH FROM inserted)
-	begin
-		ROLLBACK
-		PRINT N'Không tồn tại mã đơn hàng'
-		RETURN 
-	end
-END
+  DECLARE @email NVARCHAR(100), @phone NVARCHAR(100)
+  SELECT @email = i.email FROM inserted AS i;
 
-update DONHANG SET Trangthai = N'thành công' WHERE MaDH = 'DH003'
-select * from DONHANG
+  IF (@email NOT LIKE '%@%')
+  BEGIN
+    PRINT 'Email khong hop le'
+    ROLLBACK TRAN
+    RETURN
+  END;
+END;
+--test 1
+INSERT INTO CUSTOMER VALUES ('KH006', 'Ta Ngoc Trong', 'ngtrong.gmail.com', '0123456789', 'Da Nang');
+--test 2
+INSERT INTO CUSTOMER VALUES ('KH006', 'Ta Ngoc Trong', 'ngtrong@gmail.com', '0123456789', 'Da Nang');
+--------------------------------------------------------------------------------------------------------------
+-- Event: Tạo 1 event cứ mỗi 15 ngày sẽ cập nhật lại  GiaSP của bảng PRODUCT 1 lần với GiaSP cố định là 1000 trên mỗi SP. 
+create EVENT EV_UPDATE   
+ON SCHEDULE EVERY 15 day
+STARTS CURRENT_TIMESTAMP
+ENDS CURRENT_TIMESTAMP + INTERVAL 1 MONTH
+DO
+UPDATE PRODUCT SET GiaSP = GiaSP + 1000;
+      
+select * from PRODUCT;
 
--- tạo event chèn dữ liệu vào bảng `khachhang`--
-
-create event event_1
-on schedule at current_timestamp()
-do 
-	INSERT INTO `khachhang` VALUES ( 'KH006', 'tran mai', 'tranmai@gmail.com', '012121211', 'Quang Nam');
- select * from `khachhang`   ;
 
  -- Hoàn vũ
  -- TRIGGER: thay doi so luong san pham ton kho sau khi dat hang --
@@ -378,37 +366,6 @@ DO
 SHOW EVENTS FROM QLBH;
 SELECT * FROM QLBH.DONHANG;
 
---Hưng
---TRIGGER GIỚI HẠN SỐ LƯỢNG SẢN PHẨM THÊM VÀO TỐI ĐA 10 SẢN PHẨM: 
-
-
-CREATE TRIGGER LIMIT
-ON dbo.PRODUCT FOR INSERT 
-AS 
-BEGIN
-DECLARE @SP INT;
-SELECT @SP = dbo.PRODUCT.SoLuongSP FROM dbo.PRODUCT;
-IF @SP>10
-BEGIN
-RAISERROR(N'VƯỢT QUÁ SỐ LƯỢNG SẢN PHẦM CHO PHÉP',16,1)
-ROLLBACK TRANSACTION
-
-END
-
-END
-
-go
-
--- Tạo 1 event tự động cập nhật số lượng SP trong 
--- bảng SANPHAM mỗi loại hàng đều là 100 sp sau 0h sáng hằng ngày
-   CREATE EVENT EV_CAPNHAT
-   ON schedule
-   EVERY '1' DAY
-   STARTS '2022-03-18 00:00:00'
-   ON COMPLETION PRESERVE
-   DO
-   UPDATE PRODUCT SP SET SoLuongSP = 100
-   WHERE MSP  lIKE 'SP%'
 
 --Tuyến
 ------------------------------------------------------------------------------------------
@@ -438,34 +395,85 @@ CREATE EVENT event_Add
       insert into	CUSTOMER values ('KH006',    N'Nguyễn Mi Xo',  N'nttm@gmail.com' ,	  '0354111119',   N'Đà Nẵng')
 SELECT * FROM CUSTOMER
 
--- Tạ Ngọc Trọng
--- Trigger : Kiểm tra email của khách hàng
-CREATE TRIGGER Trg_CHECK_KH 
-ON CUSTOMER 
+--Hưng
+--TRIGGER GIỚI HẠN SỐ LƯỢNG SẢN PHẨM THÊM VÀO TỐI ĐA 10 SẢN PHẨM: 
+
+CREATE TRIGGER LIMIT
+ON PRODUCT 
 FOR INSERT
 AS
+DECLARE @SoLuong int
+SELECT @SoLuong = SoluongSP FROM inserted
+IF(@SoLuong > 10)
 BEGIN
-  DECLARE @email NVARCHAR(100), @phone NVARCHAR(100)
-  SELECT @email = i.email FROM inserted AS i;
+PRINT N'VƯỢT QUÁ SỐ LƯỢNG'
+ROLLBACK TRAN
+END
 
-  IF (@email NOT LIKE '%@%')
-  BEGIN
-    PRINT 'Email khong hop le'
-    ROLLBACK TRAN
-    RETURN
-  END;
-END;
+
 --test 1
-INSERT INTO CUSTOMER VALUES ('KH006', 'Ta Ngoc Trong', 'ngtrong.gmail.com', '0123456789', 'Da Nang');
+INSERT INTO PRODUCT VALUES ('SP0010',N'Bánh mì',N'Bánh thơm ngon',10000,50);
 --test 2
-INSERT INTO CUSTOMER VALUES ('KH006', 'Ta Ngoc Trong', 'ngtrong@gmail.com', '0123456789', 'Da Nang');
---------------------------------------------------------------------------------------------------------------
--- Event: Tạo 1 event cứ mỗi 15 ngày sẽ cập nhật lại  GiaSP của bảng PRODUCT 1 lần với GiaSP cố định là 1000 trên mỗi SP. 
-create EVENT EV_UPDATE   
-ON SCHEDULE EVERY 15 day
-STARTS CURRENT_TIMESTAMP
-ENDS CURRENT_TIMESTAMP + INTERVAL 1 MONTH
-DO
-UPDATE PRODUCT SET GiaSP = GiaSP + 1000;
-      
-select * from PRODUCT;
+INSERT INTO PRODUCT VALUES ('SP0010',N'Bánh mì',N'Bánh thơm ngon',10000,5);
+-- Tạo 1 event tự động cập nhật số lượng SP trong 
+-- bảng SANPHAM mỗi loại hàng đều là 100 sp sau 0h sáng hằng ngày
+   CREATE EVENT EV_CAPNHAT
+   ON schedule
+   EVERY '1' DAY
+   STARTS '2022-03-18 00:00:00'
+   ON COMPLETION PRESERVE
+   DO
+   UPDATE PRODUCT SP SET SoLuongSP = 100
+   WHERE MSP  lIKE 'SP%'
+
+
+
+
+--Thảo
+	--Trigger: Tạo Trigger thực hiện chèn hóa đơn, nếu tổng tiền < 0 thì dừng câu lệnh
+CREATE TRIGGER	ADD_HOADON 
+on DONHANG
+for insert	
+as 
+ if	(select TongTien from inserted) < 0
+ begin 
+ print 'Tong tien phai lon hon 0'
+ rollback tran
+end
+
+insert into DONHANG values ('DH006','2022-12-22','Dang giao','-100','KH002','SP003')
+insert into DONHANG values ('DH008','2022-12-23','Dang giao','50','KH004','SP001')
+
+	--Event: tạo event thêm đơn hàng
+CREATE EVENT ADD_DONHANG
+    ON SCHEDULE AT CURRENT_TIMESTAMP
+    DO
+      INSERT INTO DONHANG VALUES ('DH006', '2022-03-19',N'Đang giao','KH003','SP004'
+);
+
+
+--Kim Mi
+-- TẠO TRIGGER trigg_1 kiểm tra MADH có tồn tại trong bảng DONHANG khi UPDATE ---
+create TRIGGER trigger_1
+ON DONHANG
+for UPDATE
+AS
+BEGIN
+	IF NOT EXISTS (SELECT MaDH FROM inserted)
+	begin
+		ROLLBACK
+		PRINT N'Không tồn tại mã đơn hàng'
+		RETURN 
+	end
+END
+
+update DONHANG SET Trangthai = N'thành công' WHERE MaDH = 'DH003'
+select * from DONHANG
+
+-- tạo event chèn dữ liệu vào bảng `khachhang`--
+
+create event event_1
+on schedule at current_timestamp()
+do 
+	INSERT INTO `khachhang` VALUES ( 'KH006', 'tran mai', 'tranmai@gmail.com', '012121211', 'Quang Nam');
+ select * from `khachhang`   ;
